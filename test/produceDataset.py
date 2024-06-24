@@ -59,12 +59,31 @@ def getTracks(r, N, trainc, testc):
     return Data(x = x, edge_index=edge_index, y = y)    
 
 
+def drawGraph(dataset):
+    
+    plt.plot(dataset.x[:,0].numpy(), dataset.x[:,1].numpy(), 'g*')
+    
+    for edge in torch.t(dataset.edge_index):
+        print(edge.shape)
+        x1, y1 = dataset.x[edge[0],0], dataset.x[edge[0],1]
+        x2, y2 = dataset.x[edge[1],0], dataset.x[edge[1],1]
+        x = [] 
+        x.append(x1)
+        x.append(x2)
+        y = []
+        y.append(y1)
+        y.append(y2)
+        plt.plot(x, y, 'r-')
+    
+    plt.show()
+
+
 
 if __name__=='__main__':
     Ntot = 200
     ptrain = 0.4
-    ptest = 0.3
-    pval = 0.3
+    ptest = 0.0
+    pval = 0.0
     Ntrain = int(Ntot*ptrain)
     Ntest = int(Ntot*ptest)
     Nval = int(Ntot*pval)
@@ -76,5 +95,5 @@ if __name__=='__main__':
     #torch.save(dataset, 'test.pt')
     #dataset = getTracks(r, Nval, 'val')
     #torch.save(dataset, 'val.pt')
-    plt.plot(dataset.x[:,0].numpy(), dataset.x[:,1].numpy(), 'g*')
-    plt.show()
+    drawGraph(dataset)
+   
