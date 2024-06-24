@@ -6,13 +6,75 @@ import optparse
 import math
 
 
+##############################################################################
+#####These functions provide information about the metrics for the tracks#####
+##############################################################################
+def giveMeNext(edge_index, edge_label, target):
+    
+    for i in range(0, len(edge_index)):
+        if edge_label[i] < 0.7:
+            continue
+        sou = int(edge_index[i,0].numpy())
+        tar = int(edge_index[i,1].numpy())
+        if sou == target:
+            return True, tar
+    return False, -1
+
+
+def trackMetric(reference, prediction):
+
+    #We identify tracks by the first node
+    print(reference)
+    x = reference['source'].x
+    edge_index = torch.t(reference['source', 'weight', 'target'].edge_index)
+    edge_label = reference['source', 'weight', 'target'].edge_label
+
+    lista = dict()
+    usedNodes = []
+
+    #I fill the seeds
+    for i, ix in enumerate(x):
+        r = math.sqrt(ix[0]**2 + ix[1]**2)
+        if r < 10.0:
+            lista[i] = []
+            usedNodes.append(i)
+
+
+    for i, edge in enumerate(edge_index):
+
+        if edge_label[i] < 0.7:
+            continue
+        source = int(edge[0].numpy())
+        target = int(edge[1].numpy())
+        print(source, target, edge_label[i].numpy())  
+        
+        if source in lista:
+                    
+            lista[source].append(target)
+            continueSearching = True
+            while continueSearching:
+                valid, next = giveMeNext(edge_index, edge_label, target)
+                if valid:
+                    lista[source].append(next)
+                    target = next
+                else:
+                    continueSearching = False
+    
+    return lista
+##############################################################################
+##############################################################################
+##############################################################################
+
+
+
+
 
 
 def cleanSolution(dataset):
 
     x = dataset['source'].x
     edge_index = torch.t(dataset['source', 'weight', 'target'].edge_index)
-    label_index = dataset['source', 'weight', 'target'].label_index
+    label_index = dataset['source', 'weight', 'target'].edge_label
     
     lista = dict()
 
@@ -58,8 +120,6 @@ def drawGraph(dataset, ax):
     edge_index = dataset['source', 'weight', 'target'].edge_index
     edge_label = dataset['source', 'weight', 'target'].edge_label
 
-    print(edge_index)
-
     for i, edge in enumerate(torch.t(edge_index)):
        
         edge1 = edge[0].numpy()
@@ -82,6 +142,19 @@ def drawGraph(dataset, ax):
             ax.plot(xg, yg, zg, 'r-')    
 
     
+def printTrack(dataset, lista, number):
+
+    x = dataset['source'].x
+    print('------------------------------------')
+    r = math.sqrt(x[number,0]**2 + x[number,1]**2)
+    phi = math.atan2(x[number, 1], x[number, 0])
+    print('Node:', r, phi)
+    for i in lista[number]:
+        r = math.sqrt(x[i,0]**2 + x[i,1]**2)
+        phi = math.atan2(x[i, 1], x[i, 0])
+        print('Value:', r, phi)
+
+
 
 
 if __name__=='__main__':
@@ -93,6 +166,16 @@ if __name__=='__main__':
     
     dataset = torch.load(opts.inputFile)
     
+
+    
+
+    lista = trackMetric(dataset, dataset)
+   
+    #printTrack(dataset, lista, 0)
+    #printTrack(dataset, lista, 490)
+
+
+
     fig = plt.figure(figsize = (16, 8), layout="constrained")
     ax1 = fig.add_subplot(1,2,1, projection = '3d')
     ax2 = fig.add_subplot(1,2,2, projection = '3d')
