@@ -24,32 +24,28 @@ def giveMeNext(edge_index, edge_label, target):
 def trackMetric(reference, prediction):
 
     #We identify tracks by the first node
-    print(reference)
     x = reference['source'].x
     edge_index = torch.t(reference['source', 'weight', 'target'].edge_index)
     edge_label = reference['source', 'weight', 'target'].edge_label
 
     lista = dict()
-    usedNodes = []
-
-    #I fill the seeds
+    #I fill the seeds for the tracks
     for i, ix in enumerate(x):
         r = math.sqrt(ix[0]**2 + ix[1]**2)
-        if r < 10.0:
+        if r < 11.0:
             lista[i] = []
-            usedNodes.append(i)
+            
 
-
+    #I create the dictionary for the ground truth
     for i, edge in enumerate(edge_index):
 
         if edge_label[i] < 0.7:
             continue
         source = int(edge[0].numpy())
         target = int(edge[1].numpy())
-        print(source, target, edge_label[i].numpy())  
         
         if source in lista:
-                    
+            lista[source].append(source)        
             lista[source].append(target)
             continueSearching = True
             while continueSearching:
@@ -60,13 +56,59 @@ def trackMetric(reference, prediction):
                 else:
                     continueSearching = False
     
+    #Now getting the information for the target dataset
+    x_pred = prediction['source'].x
+    edge_index_pred = torch.t(prediction['source', 'weight', 'target'].edge_index)
+    edge_label_pred = prediction['source', 'weight', 'target'].edge_label
+    
+    #Creating track results
+    tracks = dict()
+
+    for source, tr in lista:
+        goodLink = 0
+        missingLink = 0
+        fakeLink = 0
+        tracks[source] = []
+        for i, node in enumerate(tr):
+            source = tr[i]
+            if i < len(tr)-1:
+                target = tr[i+1]
+            else:
+                target = -1
+            sourcePartner = getPartners(edge_index_pred, edge_label_pred, source)
+            if target == -1:
+                if sourcePartner != -1:
+                    fakeLink = fakeLink + 1
+            else:
+                if target == sourcePartner:
+                    goodLink = goodLink + 1
+                elif sourcePartner == -1:
+                    missingLink = missingLink + 1
+                else:
+                    fakeLink = fakeLink + 1
+
+            
+
+
     return lista
+
+
+def getPartners(index, label, source):
+
+    sourcePartner = -1
+    for i, edge in enumerate(index):
+        sourceP = int(edge[0].numpy())
+        targetP = int(edge[1].numpy())
+        
+        if sourceP == source and label[i] > 0.5:
+            sourcePartner = targetP
+            
+    return sourcePartner
+
+
 ##############################################################################
 ##############################################################################
 ##############################################################################
-
-
-
 
 
 
@@ -171,15 +213,15 @@ if __name__=='__main__':
 
     lista = trackMetric(dataset, dataset)
    
-    #printTrack(dataset, lista, 0)
-    #printTrack(dataset, lista, 490)
-
+   
+    printTrack(dataset, lista, 10)
+    printTrack(dataset, lista, 490)
 
 
     fig = plt.figure(figsize = (16, 8), layout="constrained")
     ax1 = fig.add_subplot(1,2,1, projection = '3d')
     ax2 = fig.add_subplot(1,2,2, projection = '3d')
-    drawGraph(dataset, ax1)
-    drawGraph(dataset, ax2)
-    plt.show()
+    #drawGraph(dataset, ax1)
+    #drawGraph(dataset, ax2)
+    #plt.show()
 
