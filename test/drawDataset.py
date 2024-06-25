@@ -64,18 +64,18 @@ def trackMetric(reference, prediction):
     #Creating track results
     tracks = dict()
 
-    for source, tr in lista:
+    for source, tr in lista.items():
         goodLink = 0
         missingLink = 0
         fakeLink = 0
         tracks[source] = []
         for i, node in enumerate(tr):
-            source = tr[i]
+            thesource = tr[i]
             if i < len(tr)-1:
                 target = tr[i+1]
             else:
                 target = -1
-            sourcePartner = getPartners(edge_index_pred, edge_label_pred, source)
+            sourcePartner = getPartners(edge_index_pred, edge_label_pred, thesource)
             if target == -1:
                 if sourcePartner != -1:
                     fakeLink = fakeLink + 1
@@ -86,11 +86,11 @@ def trackMetric(reference, prediction):
                     missingLink = missingLink + 1
                 else:
                     fakeLink = fakeLink + 1
-
+        tracks[source].append(goodLink)
+        tracks[source].append(fakeLink)
+        tracks[source].append(missingLink)
             
-
-
-    return lista
+    return tracks
 
 
 def getPartners(index, label, source):
@@ -183,7 +183,33 @@ def drawGraph(dataset, ax):
             #ax.plot(xg, yg, 'r-')    
             ax.plot(xg, yg, zg, 'r-')    
 
+
+def drawGraph2D(dataset, ax):
     
+    x = dataset['source'].x
+    #ax.plot(x[:,0].numpy(), x[:,1].numpy(), 'g*')
+    ax.plot(x[:,0].numpy(), x[:,1].numpy(), 'g*')
+
+    edge_index = dataset['source', 'weight', 'target'].edge_index
+    edge_label = dataset['source', 'weight', 'target'].edge_label
+
+    for i, edge in enumerate(torch.t(edge_index)):
+       
+        edge1 = edge[0].numpy()
+        edge2 = edge[1].numpy()
+        if edge_label[i] > 0.5:
+            x1, y1 = x[edge1,0], x[edge1,1]
+            x2, y2 = x[edge2,0], x[edge2,1]
+            xg = [] 
+            xg.append(x1)
+            xg.append(x2)
+            yg = []
+            yg.append(y1)
+            yg.append(y2)
+            ax.plot(xg, yg, 'r-')    
+               
+
+
 def printTrack(dataset, lista, number):
 
     x = dataset['source'].x
@@ -198,7 +224,6 @@ def printTrack(dataset, lista, number):
 
 
 
-
 if __name__=='__main__':
 
     parser = optparse.OptionParser(usage='usage: %prog [options] path', version='%prog 1.0')
@@ -207,21 +232,35 @@ if __name__=='__main__':
     (opts, args) = parser.parse_args()
     
     dataset = torch.load(opts.inputFile)
-    
+    dataset2 = torch.load(opts.realFile)
 
     
-
-    lista = trackMetric(dataset, dataset)
+    tracks = trackMetric(dataset, dataset2)
    
-   
-    printTrack(dataset, lista, 10)
-    printTrack(dataset, lista, 490)
+    for s, t in tracks.items():
+        print(s, t[0], t[1], t[2])
+  
 
 
-    fig = plt.figure(figsize = (16, 8), layout="constrained")
-    ax1 = fig.add_subplot(1,2,1, projection = '3d')
-    ax2 = fig.add_subplot(1,2,2, projection = '3d')
-    #drawGraph(dataset, ax1)
-    #drawGraph(dataset, ax2)
-    #plt.show()
-
+    fig = plt.figure(figsize = (8, 8), layout="constrained")
+    
+    gs0 = fig.add_gridspec(2, 1, height_ratios=[2,1])
+    gs1 = gs0[0].subgridspec(1,2)
+    ax1 = fig.add_subplot(gs1[0], projection = '3d')
+    ax2 = fig.add_subplot(gs1[1], projection = '3d') 
+    gs2 = gs0[1].subgridspec(1,2)
+    ax3 = fig.add_subplot(gs2[0])
+    ax4 = fig.add_subplot(gs2[1])
+ 
+    ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax2.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax2.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax2.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    
+    drawGraph(dataset, ax1)
+    drawGraph(dataset, ax2)
+    drawGraph2D(dataset, ax3)
+    drawGraph2D(dataset, ax4)
+    plt.show()
